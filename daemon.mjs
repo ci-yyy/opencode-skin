@@ -110,8 +110,18 @@ async function listThemesMeta() {
 
 async function buildCssForDir(dir) {
   const theme = await loadTheme(dir);
-  const { css } = await buildPaletteCss({}, theme);
-  return { theme, css };
+  // 调色板主题：colors 直搬，不依赖收割时序
+  if (theme.mode === "palette") {
+    const { css } = await buildPaletteCss({}, theme);
+    return { theme, css };
+  }
+  // 配方主题（色相染色）：必须收割 OpenCode 当下真实配色再染色。
+  // 传空收割会产出 0 个变量的空 CSS（面板点下去等于没换）
+  const target = await requireMainWindow();
+  return withMainWindow(target, async (s) => {
+    const { css } = await applyRecipe(s, theme, { dryRun: true });
+    return { theme, css };
+  });
 }
 
 // ---------- 系统通知 / 进程探测 ----------

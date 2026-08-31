@@ -158,6 +158,19 @@ test("GET /health：返回 ok", async () => {
   });
 });
 
+test("POST /applied/<dir>：置忙窗口（防守护进程抢注入顶掉面板选择）", async () => {
+  const ctx = makeDeps();
+  ctx.deps.updateState = async (patch) => {
+    Object.assign(ctx.state, patch);
+    return { ...ctx.state };
+  };
+  await withServer(ctx.deps, async (base) => {
+    await jsonFetch(`${base}/applied/a`, { method: "POST" });
+    assert.ok(ctx.state.busyUntil > Date.now(), "上报后应置 busyUntil（未来时间）");
+    assert.ok(ctx.state.busyUntil <= Date.now() + 10000, "busy 窗口应在合理范围（≤10s）");
+  });
+});
+
 test("未知路由 404", async () => {
   const { deps } = makeDeps();
   await withServer(deps, async (base) => {
