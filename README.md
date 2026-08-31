@@ -13,9 +13,15 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22-339933)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 
-[快速开始](#快速开始macos) · [内置-28-套主题](#内置-28-套主题) · [工作原理](#工作原理) · [使用须知](#使用须知都是实话)
+[快速开始](#快速开始macos) · [做你自己的主题](#做你自己的主题) · [内置 28 套主题](#内置-28-套主题) · [使用须知](#使用须知都是实话) · [English](README.en.md)
 
 </div>
+
+> ## 🆕 0.1.0 首发
+>
+> 换肤引擎双模式：**调色板直搬**（22 套背景图/渐变主题，完整语义配色原值注入）+ **色相配方**
+> （一个 `hue` 自适应染色当前界面）。守护进程刷新/重启自动补回皮肤，`create-theme.mjs` 一张图
+> 全自动生成主题。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 快速开始（macOS）
 
@@ -39,6 +45,19 @@ bash use-skin.sh 还原      # 移除皮肤，恢复官方外观
 ```
 
 名字匹配规则：先按目录名匹配，再按显示名模糊匹配（忽略空格和中点，「鸣潮声骸」「鸣潮 声骸」「鸣潮」效果相同）。
+
+`apply-skin.sh` 的重启动作由 macOS launchd 以系统任务执行，独立于 OpenCode 进程，内置保底：无论哪步失败，最后都会确保 OpenCode 处于运行状态。也可以手动带端口启动（效果等同）：`open -a "OpenCode" --args --remote-debugging-address=127.0.0.1 --remote-debugging-port=9345`。
+
+> ⚠️ 工具目录不要放在「下载」「桌面」「文稿」这类受 macOS 隐私保护的文件夹：launchd 无法执行其中的脚本（报 `Operation not permitted`），`apply-skin.sh` 会失败。
+
+## 皮肤守护进程与启动器
+
+守护进程（LaunchAgent，`install-daemon.sh` 安装、`uninstall-daemon.sh` 卸载）做两件事：
+
+1. **皮肤保活**：OpenCode 刷新/重启导致皮肤丢失时，每 5 秒巡检一次自动补回（等应用自己的主题落定再收割，抢跑会染错底色）
+2. **恢复提醒**：OpenCode 被普通方式（启动台/访达）重启后调试端口消失，弹 macOS 系统通知提醒恢复。**守护进程自己绝不会重启 OpenCode**
+
+「OpenCode 皮肤.app」启动器（`make-launcher.sh` 生成到 `~/Applications`）双击即可：OpenCode 在跑但皮肤丢了 → 按上次主题自动恢复（不重启 OpenCode），成功后弹系统通知；端口丢了 → 弹窗指引恢复命令；顺带自检守护进程（没在跑就重新拉起）。电脑重启、OpenCode 升级或皮肤意外丢失后，双击这个 App 就行。启动器逻辑住在仓库里的 `launcher-app.sh`（app 只是指向它的薄包装），改逻辑不用重新生成。
 
 `apply-skin.sh` 的重启动作由 macOS launchd 以系统任务执行，独立于 OpenCode 进程，内置保底：无论哪步失败，最后都会确保 OpenCode 处于运行状态。也可以手动带端口启动（效果等同）：`open -a "OpenCode" --args --remote-debugging-address=127.0.0.1 --remote-debugging-port=9345`。
 
@@ -224,8 +243,16 @@ opencode-skin/
   `node skin.mjs status` 可看皮肤是否还在生效
 - 出问题先跑 `node skin.mjs status`：端口、主窗口、皮肤状态、可见配色抽查一屏可见
 
+## English
+
+**OpenCode Skin** reskins OpenCode Desktop through loopback CDP injection (`127.0.0.1:9345`) without modifying the app bundle, code signature, or session data — only CSS variables are overridden. One image becomes one theme; switching is instant from the terminal; one command restores the official UI. Full English documentation: [README.en.md](README.en.md).
+
 ## 许可证与素材
 
 代码使用 [MIT License](LICENSE)。该许可只覆盖软件代码，不授权角色、商标或第三方视觉素材——
 内置动漫背景图版权归各自权利人，仅供个人使用。安全边界见 [SECURITY.md](SECURITY.md)，
 更新历史见 [CHANGELOG.md](CHANGELOG.md)。
+
+---
+
+**觉得不错就点个 Star。换好了皮肤，记得常回来换新的。**

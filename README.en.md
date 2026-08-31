@@ -4,6 +4,10 @@
 
 28 built-in themes: 22 background-image/gradient themes (full semantic palettes translated straight onto OpenCode's `--v2-*` variables) plus 6 hue-recipe themes that retint OpenCode's current palette at any lightness. Switching is instant (no restart); one command restores the official UI.
 
+> ## 🆕 0.1.0 first release
+>
+> Dual-mode engine: **palette direct-copy** (22 background/gradient themes, full semantic palettes injected verbatim) + **hue recipes** (a single `hue` retints the current UI). Keep-alive daemon restores the skin after refresh/restart; `create-theme.mjs` turns one image into a theme, fully automatic. See [CHANGELOG.md](CHANGELOG.md).
+
 ## Quick Start (macOS)
 
 Requirements: macOS + Node.js 22+ (zero npm dependencies — CDP uses Node's built-in WebSocket and fetch). OpenCode has no debug port by default, so enable it once:
