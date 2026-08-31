@@ -17,11 +17,9 @@
 
 </div>
 
-> ## 🆕 0.1.0 首发
+> ## 🆕 0.2.0 更新：界面内主题中心 + 背景图全透
 >
-> 换肤引擎双模式：**调色板直搬**（22 套背景图/渐变主题，完整语义配色原值注入）+ **色相配方**
-> （一个 `hue` 自适应染色当前界面）。守护进程刷新/重启自动补回皮肤，`create-theme.mjs` 一张图
-> 全自动生成主题。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+> **🎨 主题中心**：OpenCode 界面右下角按钮——主题列表点一下立即换肤、上传图片当场生成主题、随机切换、常驻开关、一键还原。**背景图全透**：侧栏/对话区/右栏的背景图 100% 直出，仅输入框实底。配方主题面板可用性 + 切换竞态修复。见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 它长这样
 
@@ -31,9 +29,9 @@
 | --- | --- |
 | ![鸣潮声骸主题截图](docs/images/preview-wuthering-tide.png) | ![原神星夜主题截图](docs/images/preview-genshin-night.png) |
 
-| Miku 488137 | 赛博霓虹 |
+| 折纸 | 赛博霓虹 |
 | --- | --- |
-| ![Miku主题截图](docs/images/preview-miku-488137.png) | ![赛博霓虹主题截图](docs/images/preview-cyber-neon.png) |
+| ![折纸主题截图](docs/images/preview-origami.png) | ![赛博霓虹主题截图](docs/images/preview-cyber-neon.png) |
 
 ## 快速开始（macOS）
 
