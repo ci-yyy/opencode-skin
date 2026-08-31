@@ -41,6 +41,9 @@ EOF
 
 launchctl bootstrap "gui/$(id -u)" "${PLIST}"
 sleep 2
+# 幂等重装：bootout 已把旧实例停掉，这里跑起来的一定是新代码。
+# 注意：手动改过代码后必须重跑本脚本（或先 bash uninstall-daemon.sh），
+# 否则页面上可能还是旧进程注入的旧皮肤——观感不更新且极难排查
 if pgrep -f "opencode-skin/daemon.mjs" >/dev/null 2>&1; then
   echo "✅ 守护进程已安装并运行（LaunchAgent：${LABEL}）"
   echo "   日志：${LOG_DIR}/daemon.log · 卸载：bash ${DIR}/uninstall-daemon.sh"
