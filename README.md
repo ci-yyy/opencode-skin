@@ -25,7 +25,8 @@ OpenCode 默认不带调试端口，换肤前先执行一次：
 ```bash
 bash apply-skin.sh        # 退出 OpenCode → 带端口(9345)重启 → 注入默认主题，会话数据不丢
 bash install-daemon.sh    # 可选：皮肤保活 + 恢复提醒（刷新/重启后自动补回）
-bash uninstall.sh         # 卸载：页面注入 + 守护进程 + 状态日志（--purge 连目录删）
+bash make-launcher.sh     # 可选：「OpenCode 皮肤.app」到 ~/Applications，双击恢复上次皮肤
+bash uninstall.sh         # 彻底卸载：页面注入 + 守护进程 + 启动器 + launchd 注册 + 工具目录
 ```
 
 日常换肤**不重启 OpenCode、立即生效**：
@@ -38,6 +39,8 @@ bash use-skin.sh 还原      # 移除皮肤，恢复官方外观
 ```
 
 名字匹配规则：先按目录名匹配，再按显示名模糊匹配（忽略空格和中点，「鸣潮声骸」「鸣潮 声骸」「鸣潮」效果相同）。
+
+`apply-skin.sh` 的重启动作由 macOS launchd 以系统任务执行，独立于 OpenCode 进程，内置保底：无论哪步失败，最后都会确保 OpenCode 处于运行状态。也可以手动带端口启动（效果等同）：`open -a "OpenCode" --args --remote-debugging-address=127.0.0.1 --remote-debugging-port=9345`。
 
 > ⚠️ 工具目录不要放在「下载」「桌面」「文稿」这类受 macOS 隐私保护的文件夹：launchd 无法执行其中的脚本，`install-daemon.sh` 会失败。
 
@@ -110,12 +113,18 @@ OpenCode 换自带主题后重跑一次即可跟随新底色。
 | `bash use-skin.sh <编号/名字/还原>` | 直接切换 / 还原 |
 | `bash install-daemon.sh` | 安装守护进程：皮肤保活 + 恢复提醒 |
 | `bash uninstall-daemon.sh` | 卸载守护进程 |
-| `bash uninstall.sh` | 一键卸载：页面注入、守护进程、状态日志（`--purge` 连工具目录） |
+| `bash uninstall.sh` | 一键卸载：页面注入、守护进程、启动器、launchd 注册、状态日志（`--purge` 连工具目录） |
+| `bash make-launcher.sh` | 生成「OpenCode 皮肤.app」启动器到 ~/Applications |
 | `bash apply-skin.sh` | 首次启用：带调试端口重启 OpenCode 并注入（端口丢失后也用它恢复） |
-| `node skin.mjs list` | 列出全部主题 |
-| `node skin.mjs status` | 端口 / 主窗口 / 皮肤状态 / 可见配色抽查 |
-| `node skin.mjs inject --theme <id>` | 套用指定主题（默认 state 里的，再默认 deep-teal） |
-| `node skin.mjs remove` | 只移除皮肤 |
+| `node apply.mjs --list` | 列出全部主题 |
+| `node apply.mjs --status` | 查询当前皮肤状态 |
+| `node apply.mjs --theme <id>` | 注入指定主题（默认 state 里的，再默认 deep-teal） |
+| `node apply.mjs --dry-run --theme <id>` | 只生成 CSS 不注入（调色板主题） |
+| `node apply.mjs --remove` | 移除皮肤，恢复官方外观 |
+| `node apply.mjs --port <端口>` / `--wait <毫秒>` | 指定 CDP 端口（默认 9345）/ 等主窗口时长 |
+| `node restore.mjs` | 还原官方外观（效果同 `use-skin.sh 还原`） |
+| `node create-theme.mjs --image <图> --name <名>` | 图片生成新主题（取色/深浅判定/可读性校正全自动） |
+| `node diag.mjs` | 一站式体检：守护进程/端口/主窗口/注入状态/state.json/主题目录 |
 | `node skin.mjs persistence on\|off` | 皮肤常驻开关（关=本次会话用完即止） |
 | `node skin.mjs shot [文件]` | 截图当前窗口（验证用） |
 | `npm test` | 跑测试套件（`node --test`，23 个用例，零依赖） |
@@ -137,12 +146,21 @@ OpenCode 换自带主题后重跑一次即可跟随新底色。
 ```
 opencode-skin/
 ├── use-skin.sh           # 日常入口（菜单实现在 lib/menu.mjs）
-├── apply-skin.sh         # 首次启用：带端口重启 OpenCode + 注入
-├── install-daemon.sh     # 装守护进程（LaunchAgent）
-├── uninstall-daemon.sh   # 卸守护进程
-├── uninstall.sh          # 一键卸载（--purge 连目录）
-├── skin.mjs              # 注入器 CLI（list/status/inject/remove/persistence/shot）
-├── daemon.mjs            # 守护进程：巡检保活 + 恢复提醒
+├── apply-skin.sh         # 首次启用入口（launchd 一次性重启+注入）
+├── install-daemon.sh     # 安装皮肤守护进程（LaunchAgent）
+├── uninstall-daemon.sh   # 卸载守护进程
+├── uninstall.sh          # 一键彻底卸载（页面注入/守护进程/启动器/launchd/工具目录）
+├── daemon.mjs            # 守护进程：皮肤保活 + 恢复提醒
+├── apply.mjs             # 注入器（list/status/theme/dry-run/remove）
+├── create-theme.mjs      # 图片自动生成主题
+├── restore.mjs           # 还原
+├── diag.mjs              # 一站式体检（守护进程/端口/主窗口/注入状态/state.json）
+├── relaunch-via-launchd.sh # apply-skin.sh 调用的重启器（无需直接使用）
+├── launch.sh             # 旧版启动器（已被 apply-skin.sh 取代，保留备用）
+├── make-launcher.sh      # 生成「OpenCode 皮肤.app」启动器
+├── launcher-app.sh       # 启动器实际逻辑（app 双击后执行的本体）
+├── skin.mjs              # 辅助 CLI（persistence/shot）
+├── package.json          # npm test 入口（零依赖，要求 Node 22+）
 ├── lib/
 │   ├── cdp.mjs           # CDP 客户端 + oc:// 主窗口识别
 │   ├── palette.mjs       # 调色板映射表（ZC_TO_OC）+ 收割重映射（配方模式）
@@ -153,13 +171,22 @@ opencode-skin/
 │   ├── state.mjs         # state.json 读写（原子写）
 │   └── menu.mjs          # use-skin.sh 交互菜单
 ├── test/                 # 测试套件（23 个用例，node --test）
+├── skill/opencode-skin/  # AI Skill（可交给 Agent 直接操作本工具）
+├── docs/theme-prompts.md # 主题背景图生成提示词库（8 套风格）
 ├── themes/               # 28 套主题（一 JSON 一套 + 背景图目录）
 └── logs/                 # 运行日志（已 gitignore）
 ```
 
 ## 做你自己的主题
 
-往 `themes/` 扔一个 JSON 即可，无需重启任何东西：
+三条路，从省事到好玩：
+
+1. **命令行生成**：`node create-theme.mjs --image /path/to/图片.jpg --name "主题名"`，PNG/JPG/WebP 都行，
+   支持 `--id` / `--appearance dark|light`（默认按图片亮度自动判定）/ `--force` 覆盖同名。
+   取色在 OpenCode 渲染进程里跑（canvas 采样 + 色相分桶统计）→ 深浅判定 → 主色过暗/过亮时保色相
+   校正到可读区间 → 生成完整语义配色 + 背景图
+2. **让 AI 全包**：把 `skill/opencode-skin/SKILL.md` 交给 OpenCode/Agent，直接说「换一套赛博朋克主题」
+3. **手工编写**：往 `themes/` 扔一个 JSON 即可，无需重启任何东西：
 
 **色相配方**（自适应当前底色）：
 
@@ -182,6 +209,8 @@ opencode-skin/
 - `heroImage` 指同目录背景图文件名（铺满整窗），`heroCss` 写任意 CSS 背景，都不写就是纯配色
 - `colors` 键清单见 `lib/palette.mjs` 的 `ZC_TO_OC` 映射表，格式 `#RRGGBB` 或 `#RRGGBBAA`
 - 背景图主题可加 `"surfaceAlpha": 0.55` 调图透出的程度（0~1，越小越透）
+- 新主题立即出现在菜单里；生成前可 `node apply.mjs --dry-run --theme <id>` 预览 CSS
+- 缺背景图的话，[docs/theme-prompts.md](docs/theme-prompts.md) 有 8 套风格现成的生图提示词
 
 ## 使用须知（都是实话）
 

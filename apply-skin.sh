@@ -1,31 +1,69 @@
 #!/bin/bash
-# apply-skin.sh — 首次启用 / 端口丢失后恢复：
-#   退出 OpenCode → 带调试端口(9345)重启 → 等主窗口就绪并注入当前主题
-# 会话数据不受影响（只是重启时多了两个调试参数）。
+# apply-skin.sh — 首次启用 / 端口丢失后恢复
+#
+# 重启动作用 launchd 一次性任务执行（relaunch-via-launchd.sh）：脚本属于 macOS，
+# 独立于 OpenCode 与调用方终端存活，中途关终端、退会话都不影响。
+# 保底：无论哪步失败，最后都会确保 OpenCode 处于运行状态。
+#
+# 用法：bash apply-skin.sh    （重复执行 = 幂等重做一遍）
+
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT="${OPENCODE_SKIN_CDP_PORT:-9345}"
+LABEL="com.opencode.skin.relaunch"
+PLIST="/tmp/${LABEL}.plist"
+MARK_FILE="/tmp/opencode-skin-relaunch.done"
 
-echo "==> 1/3 退出 OpenCode"
-if pgrep -f "OpenCode.app/Contents/MacOS/OpenCode" >/dev/null 2>&1; then
-  osascript -e 'quit app "OpenCode"' >/dev/null 2>&1 || true
-  for _ in $(seq 1 40); do
-    pgrep -f "OpenCode.app/Contents/MacOS/OpenCode" >/dev/null 2>&1 || break
-    sleep 0.5
-  done
-  if pgrep -f "OpenCode.app/Contents/MacOS/OpenCode" >/dev/null 2>&1; then
-    echo "❌ OpenCode 没能在 20 秒内退出，请手动退出后重试" >&2
-    exit 1
+# 结束时注销 launchd 任务、删临时 plist（Ctrl+C / 出错也走这里）
+cleanup() {
+  launchctl bootout "gui/$(id -u)/${LABEL}" >/dev/null 2>&1 || true
+  rm -f "$PLIST" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+rm -f "$MARK_FILE"
+
+cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>${DIR}/relaunch-via-launchd.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PORT</key><string>${PORT}</string>
+    <key>MARK_FILE</key><string>${MARK_FILE}</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>${DIR}/logs/relaunch-out.log</string>
+  <key>StandardErrorPath</key><string>${DIR}/logs/relaunch-err.log</string>
+</dict>
+</plist>
+EOF
+
+mkdir -p "${DIR}/logs"
+echo "==> 通过 launchd 重启 OpenCode（带端口 ${PORT}）并注入皮肤"
+launchctl bootstrap "gui/$(id -u)" "$PLIST"
+
+# 等结果标记（重启 + 等主题落定 + 注入，最长 2 分钟）
+for _ in $(seq 1 240); do
+  if [ -f "$MARK_FILE" ]; then
+    if grep -q '^ok$' "$MARK_FILE"; then
+      echo "✅ 完成：OpenCode 已带端口运行，皮肤已注入"
+      echo "   日常换主题：bash ${DIR}/use-skin.sh · 守护进程：bash ${DIR}/install-daemon.sh"
+      exit 0
+    else
+      echo "❌ 重启器报告失败，看日志：${DIR}/logs/relaunch.log" >&2
+      exit 1
+    fi
   fi
-else
-  echo "    （OpenCode 未在运行）"
-fi
+  sleep 0.5
+done
 
-echo "==> 2/3 带调试端口重启 OpenCode"
-open -a "OpenCode" --args --remote-debugging-address=127.0.0.1 --remote-debugging-port="${PORT}"
-
-echo "==> 3/3 等主窗口就绪并注入皮肤（首次启动要等应用主题落定，约 10~20 秒）"
-node "${DIR}/skin.mjs" inject --wait 60000
-
-echo
-echo "✅ 完成。日常换主题：bash ${DIR}/use-skin.sh · 自动恢复守护进程：bash ${DIR}/install-daemon.sh"
+echo "⚠️ 2 分钟没等到结果标记（可能在慢机器上仍在跑），看日志：${DIR}/logs/relaunch.log" >&2
+exit 1
