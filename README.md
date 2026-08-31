@@ -23,6 +23,18 @@
 > （一个 `hue` 自适应染色当前界面）。守护进程刷新/重启自动补回皮肤，`create-theme.mjs` 一张图
 > 全自动生成主题。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
+## 它长这样
+
+下面是内置主题在 OpenCode 里的真实截图（空会话窗口）。注入后背景铺满整窗，侧栏、输入框、对话区全是 OpenCode 原生控件，可以正常点。
+
+| 鸣潮 · 声骸 | 原神 · 星夜 |
+| --- | --- |
+| ![鸣潮声骸主题截图](docs/images/preview-wuthering-tide.png) | ![原神星夜主题截图](docs/images/preview-genshin-night.png) |
+
+| Miku 488137 | 赛博霓虹 |
+| --- | --- |
+| ![Miku主题截图](docs/images/preview-miku-488137.png) | ![赛博霓虹主题截图](docs/images/preview-cyber-neon.png) |
+
 ## 快速开始（macOS）
 
 环境要求：macOS + Node.js 22 及以上（零 npm 依赖，CDP 通信用 Node 自带的 WebSocket 和 fetch）。

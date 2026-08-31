@@ -8,6 +8,18 @@
 >
 > Dual-mode engine: **palette direct-copy** (22 background/gradient themes, full semantic palettes injected verbatim) + **hue recipes** (a single `hue` retints the current UI). Keep-alive daemon restores the skin after refresh/restart; `create-theme.mjs` turns one image into a theme, fully automatic. See [CHANGELOG.md](CHANGELOG.md).
 
+## What it looks like
+
+Real screenshots of built-in themes running in OpenCode (empty session window) — native controls stay fully interactive:
+
+| Wuthering Tide | Genshin Night |
+| --- | --- |
+| ![Wuthering Tide theme](docs/images/preview-wuthering-tide.png) | ![Genshin Night theme](docs/images/preview-genshin-night.png) |
+
+| Miku 488137 | Cyber Neon |
+| --- | --- |
+| ![Miku theme](docs/images/preview-miku-488137.png) | ![Cyber Neon theme](docs/images/preview-cyber-neon.png) |
+
 ## Quick Start (macOS)
 
 Requirements: macOS + Node.js 22+ (zero npm dependencies — CDP uses Node's built-in WebSocket and fetch). OpenCode has no debug port by default, so enable it once:
