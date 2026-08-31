@@ -4,7 +4,7 @@
 
 **写代码的地方，也该是你喜欢的样子。**
 
-28 套内置主题：22 套背景图/渐变 + 6 套色相配方。装好之后换肤只是终端里的一次回车，随时一键还原官方外观。
+28 套内置主题：22 套背景图/渐变 + 6 套色相配方。装好之后，换肤只是终端里的一次回车，或界面里 🎨 主题中心的一次点击，随时一键还原官方外观。
 
 *Reskin OpenCode Desktop through loopback CDP injection. Native controls stay fully interactive.*
 
@@ -62,12 +62,26 @@ bash use-skin.sh 还原      # 移除皮肤，恢复官方外观
 
 > ⚠️ 工具目录不要放在「下载」「桌面」「文稿」这类受 macOS 隐私保护的文件夹：launchd 无法执行其中的脚本（报 `Operation not permitted`），`apply-skin.sh` 会失败。
 
+## OpenCode 界面里的「🎨 主题中心」
+
+装好守护进程后，OpenCode 界面右下角会出现一个半透明的 🎨 圆形按钮：
+
+- **主题列表**：色卡预览 + 深浅图标 + 当前主题打勾，点一下立即换肤
+- **＋ 自定义图片**（≤12MB）：选一张图，自动取色/判深浅/校正主色，当场生成新主题并换上
+- **🎲 随机主题**：随机换一套，避开当前主题，不连续重复
+- **🔁 常驻开关**（默认开）：关掉后本次会话皮肤继续用，OpenCode 下次启动恢复官方外观
+- **● 收起为小圆点**：把 🎨 按钮收成小圆点（Cmd+点击按钮也能切换），小圆点悬停放大、点击照常打开
+- 底部「还原官方外观」一键去皮肤
+
+OpenCode 刷新或升级后按钮和面板消失的话，守护进程 5 秒内自动补回。终端 `use-skin.sh` 和面板两边切换会互相同步（谁最后操作听谁的）。
+
 ## 皮肤守护进程与启动器
 
-守护进程（LaunchAgent，`install-daemon.sh` 安装、`uninstall-daemon.sh` 卸载）做两件事：
+守护进程（LaunchAgent，`install-daemon.sh` 安装、`uninstall-daemon.sh` 卸载）做三件事：
 
-1. **皮肤保活**：OpenCode 刷新/重启导致皮肤丢失时，每 5 秒巡检一次自动补回（等应用自己的主题落定再收割，抢跑会染错底色）
-2. **恢复提醒**：OpenCode 被普通方式（启动台/访达）重启后调试端口消失，弹 macOS 系统通知提醒恢复。**守护进程自己绝不会重启 OpenCode**
+1. **主题中心**：给 OpenCode 界面注入 🎨 按钮和面板，提供面板用的主题列表/CSS/上传/随机/设置接口（`127.0.0.1:9346`，只绑回环，已做 Origin 校验，浏览器跨站请求 403）
+2. **皮肤保活**：OpenCode 刷新/重启导致皮肤或主题中心丢失时，每 5 秒巡检一次自动补回
+3. **恢复提醒**：OpenCode 被普通方式（启动台/访达）重启后调试端口消失，弹 macOS 系统通知提醒恢复。**守护进程自己绝不会重启 OpenCode**
 
 「OpenCode 皮肤.app」启动器（`make-launcher.sh` 生成到 `~/Applications`）双击即可：OpenCode 在跑但皮肤丢了 → 按上次主题自动恢复（不重启 OpenCode），成功后弹系统通知；端口丢了 → 弹窗指引恢复命令；顺带自检守护进程（没在跑就重新拉起）。电脑重启、OpenCode 升级或皮肤意外丢失后，双击这个 App 就行。启动器逻辑住在仓库里的 `launcher-app.sh`（app 只是指向它的薄包装），改逻辑不用重新生成。
 
@@ -152,13 +166,15 @@ OpenCode 换自带主题后重跑一次即可跟随新底色。
 | `node apply.mjs --theme <id>` | 注入指定主题（默认 state 里的，再默认 deep-teal） |
 | `node apply.mjs --dry-run --theme <id>` | 只生成 CSS 不注入（调色板主题） |
 | `node apply.mjs --remove` | 移除皮肤，恢复官方外观 |
+| `node apply.mjs --panel` | 注入皮肤的同时注入「🎨 主题中心」按钮 |
+| `node apply.mjs --remove-panel` | 只移除主题中心按钮（不动皮肤） |
 | `node apply.mjs --port <端口>` / `--wait <毫秒>` | 指定 CDP 端口（默认 9345）/ 等主窗口时长 |
 | `node restore.mjs` | 还原官方外观（效果同 `use-skin.sh 还原`） |
 | `node create-theme.mjs --image <图> --name <名>` | 图片生成新主题（取色/深浅判定/可读性校正全自动） |
 | `node diag.mjs` | 一站式体检：守护进程/端口/主窗口/注入状态/state.json/主题目录 |
 | `node skin.mjs persistence on\|off` | 皮肤常驻开关（关=本次会话用完即止） |
 | `node skin.mjs shot [文件]` | 截图当前窗口（验证用） |
-| `npm test` | 跑测试套件（`node --test`，23 个用例，零依赖） |
+| `npm test` | 跑测试套件（`node --test`，32 个用例，零依赖） |
 
 ## 皮肤守护进程
 
@@ -191,6 +207,9 @@ opencode-skin/
 ├── make-launcher.sh      # 生成「OpenCode 皮肤.app」启动器
 ├── launcher-app.sh       # 启动器实际逻辑（app 双击后执行的本体）
 ├── skin.mjs              # 辅助 CLI（persistence/shot）
+├── lib/http-api.mjs      # 主题中心数据服务 HTTP API（路由 + Origin 校验 + 上传解析）
+├── lib/panel.js          # 主题中心界面（注入 OpenCode 内运行）
+├── lib/create-theme.mjs  # 图片→主题核心流程（CLI 与面板上传共用）
 ├── package.json          # npm test 入口（零依赖，要求 Node 22+）
 ├── lib/
 │   ├── cdp.mjs           # CDP 客户端 + oc:// 主窗口识别
@@ -201,7 +220,7 @@ opencode-skin/
 │   ├── flow.mjs          # 入口级动作：串状态与注入 + busy 防抢占
 │   ├── state.mjs         # state.json 读写（原子写）
 │   └── menu.mjs          # use-skin.sh 交互菜单
-├── test/                 # 测试套件（23 个用例，node --test）
+├── test/                 # 测试套件（32 个用例，node --test）
 ├── skill/opencode-skin/  # AI Skill（可交给 Agent 直接操作本工具）
 ├── docs/theme-prompts.md # 主题背景图生成提示词库（8 套风格）
 ├── themes/               # 28 套主题（一 JSON 一套 + 背景图目录）
@@ -245,10 +264,11 @@ opencode-skin/
 
 ## 使用须知（都是实话）
 
-- 注入走本机回环 CDP（`127.0.0.1:9345`），只覆盖 CSS 变量。该端口是 OpenCode 的调试端口，
-  **没有身份认证**（CDP 协议本身如此）、只绑回环：同机同用户权限的进程都能连上它控制
-  OpenCode 渲染进程。介意的话 `bash uninstall.sh` 后从启动台正常打开 OpenCode（端口消失，
-  风险窗口关闭）。完整说明见 [SECURITY.md](SECURITY.md)
+- 两个本地端口都只绑定 `127.0.0.1` 本机回环、不对外网开放：9345 是 OpenCode 的调试端口
+  （CDP 协议**没有身份认证**，这是协议本身如此），9346 是守护进程的主题数据服务（已做
+  Origin 校验，浏览器里网页的跨站请求 403），同机同权限进程仍在威胁边界内。介意的话
+  `bash uninstall.sh` 后从启动台正常打开 OpenCode（端口消失，风险窗口关闭）。
+  完整说明见 [SECURITY.md](SECURITY.md)
 - OpenCode 换自带主题（如切到 AMOLED）后，调色板主题的观感保持不变（`!important` 锁定）；
   配方主题想跟随新底色重跑一次即可
 - OpenCode 大版本更新若改了变量命名空间（`--v2-*` 等），映射表可能需要跟进；

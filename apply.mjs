@@ -10,6 +10,8 @@
 //   node apply.mjs --status                 查看当前皮肤状态
 //   node apply.mjs --list                   列出所有可用主题
 //   node apply.mjs --remove                 移除皮肤，恢复官方外观
+//   node apply.mjs --panel                  注入皮肤的同时注入「🎨 主题中心」按钮
+//   node apply.mjs --remove-panel           只移除主题中心按钮（不动皮肤）
 
 import { DEFAULT_PORT } from "./lib/cdp.mjs";
 import { listThemes, loadTheme, DEFAULT_THEME_ID } from "./lib/themes.mjs";
@@ -17,10 +19,12 @@ import { readState, updateState } from "./lib/state.mjs";
 import { buildSkinCss } from "./lib/tint.mjs";
 import { buildPaletteCss } from "./lib/palette.mjs";
 import { readFileSync } from "node:fs";
-import { applyRecipe, injectionScript, removalScript, statusOfApp, waitForMainWindow, waitDomReady } from "./lib/core.mjs";
+import { join } from "node:path";
+import { applyRecipe, injectionScript, panelInjectionScript, panelRemovalScript, removalScript, statusOfApp, waitForMainWindow, waitDomReady, STYLE_ID } from "./lib/core.mjs";
 import { CdpSession } from "./lib/cdp.mjs";
 
 const here = new URL(".", import.meta.url);
+const API_PORT = Number(process.env.OPENCODE_SKIN_API_PORT) || 9346;
 
 function parseArgs(argv) {
   const opts = {
@@ -31,6 +35,8 @@ function parseArgs(argv) {
     list: false,
     dryRun: false,
     remove: false,
+    panel: false,
+    removePanel: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -41,6 +47,8 @@ function parseArgs(argv) {
     else if (arg === "--list") opts.list = true;
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--remove") opts.remove = true;
+    else if (arg === "--panel") opts.panel = true;
+    else if (arg === "--remove-panel") opts.removePanel = true;
     else throw new Error(`未知参数：${arg}`);
   }
   if (!Number.isInteger(opts.port)) throw new Error("--port 需要一个整数");
@@ -107,6 +115,22 @@ async function main() {
       await updateState({ theme: null });
       console.log(result?.removed ? "✅ 皮肤已移除，恢复官方外观" : "ℹ️ 本来就没有皮肤");
       return;
+    }
+
+    if (opts.removePanel) {
+      const result = await session.evaluate(panelRemovalScript());
+      console.log(result?.removed ? "✅ 主题中心已移除" : "ℹ️ 主题中心本来就不在");
+      return;
+    }
+
+    if (opts.panel) {
+      const panelSource = readFileSync(join(here.pathname, "lib", "panel.js"), "utf8");
+      const r = await session.evaluate(panelInjectionScript(panelSource, { port: API_PORT, styleId: STYLE_ID }));
+      console.log(
+        r?.injected
+          ? `🎨 主题中心按钮已注入（列表来自守护进程 127.0.0.1:${API_PORT}，没装守护进程时按钮列表会加载失败）`
+          : "🎨 主题中心按钮已存在，跳过",
+      );
     }
 
     const { result, tinted } = await applyRecipe(session, theme, { timeoutMs: opts.waitMs });

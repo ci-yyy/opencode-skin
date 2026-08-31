@@ -54,10 +54,13 @@ Guardrail rules baked into code and tests: never re-inject the `--color-*` names
 |---|---|
 | `bash use-skin.sh` | Interactive theme menu |
 | `bash apply-skin.sh` | First-time enable / port recovery (relaunches OpenCode with the debug port) |
+| `node apply.mjs --panel` / `--remove-panel` | Inject / remove the in-app 🎨 theme center button |
 | `bash install-daemon.sh` / `bash uninstall-daemon.sh` | Install/remove the keep-alive LaunchAgent |
 | `bash uninstall.sh` | One-shot uninstall (`--purge` also deletes the tool directory) |
 | `node skin.mjs list / status / inject / remove / persistence / shot` | Injector CLI |
 | `npm test` | Test suite (23 cases, `node --test`, zero dependencies) |
+
+The keep-alive LaunchAgent also serves the in-app 🎨 theme center (theme list / instant switching / image upload / random / settings) through a loopback-only HTTP API on port 9346, with origin validation — cross-site browser requests get 403.
 
 ## Security
 
